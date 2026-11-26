@@ -7,10 +7,12 @@
 """
 from __future__ import annotations
 
+import http.client
 import json
 import mimetypes
 import os
 import secrets
+import shutil
 import subprocess
 import sys
 import threading
@@ -26,14 +28,105 @@ import sources as SRC
 from rooms import EQ_BANDS, EQ_PRESETS, ROOM_BY_ID, ROOMS
 from store import Store
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 REPO = "ahmedqassimtv-commits/qassimz-music"
-NOW_PLAYING: dict = {}
+CATALOG_URL = "https://raw.githubusercontent.com/ahmedqassimtv-commits/qassimz-hub/main/catalog.json"
+NOW_PLAYING: dict[str, str] = {}
+NOW_PLAYING_MAX = 256
+
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("image/svg+xml", ".svg")
 
 
 def resource(rel: str) -> Path:
     base = getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)
     return Path(base) / rel
+
+
+class _IcyHTTPResponse(http.client.HTTPResponse):
+    """Supports Shoutcast v1 'ICY 200 OK' status lines alongside standard HTTP/1.x."""
+
+    def _read_status(self):
+        line = str(self.fp.readline(http.client._MAXLINE + 1), "iso-8859-1")
+        if len(line) > http.client._MAXLINE:
+            raise http.client.LineTooLong("status line")
+        if not line:
+            raise http.client.RemoteDisconnected("Remote end closed connection without response")
+        if line.startswith("ICY "):
+            line = "HTTP/1.0 " + line[4:]
+        try:
+            version, status, reason = line.split(None, 2)
+        except ValueError:
+            try:
+                version, status = line.split(None, 1)
+                reason = ""
+            except ValueError:
+                version = ""
+        if not version.startswith("HTTP/"):
+            self._close_conn()
+            raise http.client.BadStatusLine(line)
+        try:
+            status = int(status)
+            if status < 100 or status > 999:
+                raise http.client.BadStatusLine(line)
+        except ValueError:
+            raise http.client.BadStatusLine(line)
+        return version, status, reason
+
+
+class _IcyHTTPConnection(http.client.HTTPConnection):
+    response_class = _IcyHTTPResponse
+
+
+class _IcyHTTPSConnection(http.client.HTTPSConnection):
+    response_class = _IcyHTTPResponse
+
+
+class _IcyHTTPHandler(urllib.request.HTTPHandler):
+    def http_open(self, req):
+        return self.do_open(_IcyHTTPConnection, req)
+
+
+class _IcyHTTPSHandler(urllib.request.HTTPSHandler):
+    def https_open(self, req):
+        return self.do_open(_IcyHTTPSConnection, req, context=self._context)
+
+
+def _stream_opener() -> urllib.request.OpenerDirector:
+    return urllib.request.build_opener(
+        _IcyHTTPHandler(),
+        _IcyHTTPSHandler(context=SRC.ssl_ctx()),
+    )
+
+
+def _read_exact(src, n: int) -> bytes:
+    buf = bytearray()
+    while len(buf) < n:
+        chunk = src.read(n - len(buf))
+        if not chunk:
+            break
+        buf.extend(chunk)
+    return bytes(buf)
+
+
+def _stream_exact(src, dst, n: int) -> bool:
+    remaining = n
+    while remaining > 0:
+        chunk = src.read(min(16384, remaining))
+        if not chunk:
+            return False
+        dst.write(chunk)
+        remaining -= len(chunk)
+    dst.flush()
+    return True
+
+
+def _set_now_playing(sid: str, title: str) -> None:
+    if not sid:
+        return
+    if sid not in NOW_PLAYING and len(NOW_PLAYING) >= NOW_PLAYING_MAX:
+        NOW_PLAYING.pop(next(iter(NOW_PLAYING)), None)
+    NOW_PLAYING[sid] = title
 
 
 class Api:
@@ -191,12 +284,29 @@ class Api:
         return True
 
     def reveal(self, path):
-        if os.name == "nt":
-            subprocess.Popen(["explorer", "/select,", path])
+        if os.name == "nt" and path:
+            subprocess.Popen(f'explorer.exe /select,"{os.path.normpath(path)}"')
         return True
 
     # ------------------------------------------------------------ update
     def check_update(self):
+        try:
+            cat = SRC.get_json(CATALOG_URL, ttl=0, timeout=8)
+            apps = cat.get("apps", {}) if isinstance(cat, dict) else {}
+            entry = apps.get("qassimz-music") if isinstance(apps, dict) else None
+            if isinstance(entry, dict):
+                tag = str(entry.get("version") or entry.get("latest_version") or "").lstrip("vV")
+                dl = (entry.get("setup_url") or entry.get("download_url") or entry.get("installer_url")
+                      or entry.get("installer") or entry.get("url") or "")
+                if dl and dl.rstrip("/") == f"https://github.com/{REPO}":
+                    dl = ""
+                if tag and _ver(tag) > _ver(VERSION) and dl:
+                    self.update_info = {"version": tag, "url": dl}
+                    return self.update_info
+                if tag and _ver(tag) != (0,) and _ver(tag) <= _ver(VERSION):
+                    return {"latest": True}
+        except Exception:
+            pass
         try:
             rel = SRC.get_json(f"https://api.github.com/repos/{REPO}/releases/latest", ttl=0)
             tag = rel.get("tag_name", "").lstrip("vV")
@@ -215,7 +325,7 @@ class Api:
         dst = Path(tempfile.gettempdir()) / f"QASSIMZ-Music-Setup-{self.update_info['version']}.exe"
         req = urllib.request.Request(self.update_info["url"], headers={"User-Agent": SRC.UA})
         with urllib.request.urlopen(req, timeout=180, context=SRC.ssl_ctx()) as r, open(dst, "wb") as f:
-            f.write(r.read())
+            shutil.copyfileobj(r, f, 65536)
         subprocess.Popen([str(dst), "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS"])
         threading.Timer(1.0, lambda: os._exit(0)).start()
         return True
@@ -274,7 +384,7 @@ def make_handler(api: Api, token: str, ui: Path):
                 if ui.resolve() not in f.parents or not f.is_file():
                     return self._send(404, b"not found", "text/plain")
                 return self._file(f)
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 pass
 
         do_HEAD = do_GET
@@ -284,13 +394,37 @@ def make_handler(api: Api, token: str, ui: Path):
             ctype = mimetypes.guess_type(str(p))[0] or "application/octet-stream"
             if p.suffix == ".js":
                 ctype = "text/javascript; charset=utf-8"
+            elif p.suffix == ".css":
+                ctype = "text/css; charset=utf-8"
+            elif p.suffix == ".html":
+                ctype = "text/html; charset=utf-8"
+            if size == 0:
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
             rng = self.headers.get("Range")
             start, end, code = 0, size - 1, 200
             if rng and rng.startswith("bytes="):
-                a, _, b = rng[6:].partition("-")
-                start = int(a or 0)
-                end = min(int(b) if b else size - 1, size - 1)
-                code = 206
+                a, _, b = rng[6:].split(",", 1)[0].partition("-")
+                try:
+                    if a == "" and b:
+                        start = max(0, size - int(b))
+                        end = size - 1
+                    else:
+                        start = int(a or 0)
+                        end = min(int(b) if b else size - 1, size - 1)
+                    if start < 0 or start >= size or start > end:
+                        self.send_response(416)
+                        self.send_header("Content-Range", f"bytes */{size}")
+                        self.send_header("Content-Length", "0")
+                        self.end_headers()
+                        return
+                    code = 206
+                except ValueError:
+                    start, end, code = 0, size - 1, 200
             self.send_response(code)
             self.send_header("Content-Type", ctype)
             self.send_header("Accept-Ranges", "bytes")
@@ -310,61 +444,85 @@ def make_handler(api: Api, token: str, ui: Path):
                     self.wfile.write(chunk)
                     left -= len(chunk)
 
-        def _relay(self, url, sid):
+        def _relay(self, url: str, sid: str):
             if not url.startswith(("http://", "https://")):
                 return self._send(400, b"bad url", "text/plain")
-            headers = {"User-Agent": SRC.UA, "Icy-MetaData": "1", "Accept": "*/*"}
-            if self.headers.get("Range"):
-                headers["Range"] = self.headers["Range"]
+            is_live = bool(sid)
+            headers = {"User-Agent": SRC.UA, "Accept": "*/*"}
+            if is_live:
+                headers["Icy-MetaData"] = "1"
+                _set_now_playing(sid, "")
+            else:
+                if self.headers.get("Range"):
+                    headers["Range"] = self.headers["Range"]
             req = urllib.request.Request(url, headers=headers)
+            opener = _stream_opener()
             try:
-                up = urllib.request.urlopen(req, timeout=15, context=SRC.ssl_ctx() if url.startswith("https") else None)
+                up = opener.open(req, timeout=20 if is_live else 60)
             except Exception as e:
-                return self._send(502, str(e).encode(), "text/plain")
+                self.close_connection = True
+                return self._send(502, str(e).encode("utf-8", "replace"), "text/plain")
             with up:
-                metaint = int(up.headers.get("icy-metaint") or 0)
+                raw_mi = (up.headers.get("icy-metaint") or "").strip()
+                try:
+                    metaint = int(raw_mi) if raw_mi else 0
+                except ValueError:
+                    metaint = 0
                 ctype = up.headers.get("Content-Type") or "audio/mpeg"
-                if ctype.startswith(("text/", "application/octet")) and metaint:
+                if ctype.startswith(("text/", "application/octet")) and (metaint or is_live):
                     ctype = "audio/mpeg"
-                self.send_response(up.status if up.status in (200, 206) else 200)
+                has_crange = bool(up.headers.get("Content-Range"))
+                if not metaint and not is_live and getattr(up, "status", 200) == 206 and has_crange:
+                    status = 206
+                else:
+                    status = 200
+                self.send_response(status)
                 self.send_header("Content-Type", ctype)
-                self.send_header("Cache-Control", "no-store")
-                if not metaint:
-                    for h in ("Content-Length", "Content-Range", "Accept-Ranges"):
-                        if up.headers.get(h):
-                            self.send_header(h, up.headers[h])
-                if metaint or not up.headers.get("Content-Length"):
+                if metaint > 0 or is_live:
+                    self.send_header("Cache-Control", "no-store, no-transform")
+                    self.send_header("Accept-Ranges", "none")
                     self.send_header("Connection", "close")
                     self.close_connection = True
-                name = up.headers.get("icy-name")
-                if name and sid and sid not in NOW_PLAYING:
-                    NOW_PLAYING[sid] = ""
+                else:
+                    self.send_header("Cache-Control", "no-store")
+                    for h in ("Content-Length", "Accept-Ranges"):
+                        if up.headers.get(h):
+                            self.send_header(h, up.headers[h])
+                    if status == 206 and has_crange:
+                        self.send_header("Content-Range", up.headers["Content-Range"])
+                    if not up.headers.get("Content-Length"):
+                        self.send_header("Connection", "close")
+                        self.close_connection = True
                 self.end_headers()
                 if self.command == "HEAD":
                     return
                 try:
-                    if not metaint:
+                    if metaint <= 0:
                         while True:
                             chunk = up.read(32768)
                             if not chunk:
                                 break
                             self.wfile.write(chunk)
+                            if is_live:
+                                self.wfile.flush()
                         return
                     while True:
-                        audio = up.read(metaint)
-                        if not audio:
+                        if not _stream_exact(up, self.wfile, metaint):
                             break
-                        self.wfile.write(audio)
-                        ln = up.read(1)
+                        ln = _read_exact(up, 1)
                         if not ln:
                             break
                         n = ln[0] * 16
                         if n:
-                            meta = up.read(n).rstrip(b"\x00").decode("utf-8", "replace")
+                            raw_meta = _read_exact(up, n)
+                            if len(raw_meta) < n:
+                                break
+                            meta = raw_meta.rstrip(b"\x00").decode("utf-8", "replace")
                             if "StreamTitle='" in meta:
-                                title = meta.split("StreamTitle='", 1)[1].split("';", 1)[0].strip()
+                                rest = meta.split("StreamTitle='", 1)[1]
+                                title = (rest.split("';", 1)[0] if "';" in rest else rest.rsplit("'", 1)[0]).strip()
                                 if sid:
-                                    NOW_PLAYING[sid] = title
+                                    _set_now_playing(sid, title)
                 except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                     pass
                 except Exception:

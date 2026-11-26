@@ -4,47 +4,69 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QASSIMZ Music</title>
-<link rel="icon" href="logo.png">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="alternate icon" href="logo.png">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body tabindex="-1">
 <div class="bg"><div class="art" id="bgArt"></div><span class="blob b1"></span><span class="blob b2"></span><div class="grain"></div></div>
 
 <div class="app">
   <aside class="side glass">
-    <div class="brand"><img src="logo.png" alt=""><div><b>قَاسِمز</b><small>MUSIC</small></div></div>
+    <div class="brand">
+      <img src="logo.svg" alt="QASSIMZ Music">
+      <div class="brand-txt">
+        <b>قَاسِمز</b>
+        <small>MUSIC STUDIO</small>
+      </div>
+    </div>
+    <div class="side-label">التصفّح</div>
     <nav id="nav"></nav>
     <div class="side-sec"><span>قوايم التشغيل</span><button id="newPl" title="قايمة جديدة"></button></div>
     <div class="pl-list" id="plNav"></div>
-    <div class="side-foot"><button class="btn sm" id="bSet" title="الإعدادات"></button><button class="btn sm" id="bGit" title="GitHub"></button><button class="btn sm" id="bSup" title="الدعم"></button></div>
+    <div class="side-foot">
+      <button class="btn sm" id="bSet" title="الإعدادات (Ctrl+,)"></button>
+      <button class="btn sm" id="bGit" title="GitHub"></button>
+      <button class="btn sm" id="bSup" title="الدعم"></button>
+    </div>
   </aside>
 
   <main id="main"></main>
 
   <footer class="player glass" id="player">
     <div class="np">
-      <div class="cover" id="pCover" title="شاشة التشغيل الكاملة"><span class="ini">♪</span></div>
-      <div class="meta"><b id="pTitle">اختار حاجة تسمعها</b><small id="pSub">راديو، مهرجانات، شعبي، طرب، أجنبي…</small></div>
+      <div class="cover" id="pCover" title="شاشة التشغيل الكاملة (F)"><span class="ini">♪</span></div>
+      <div class="meta">
+        <b id="pTitle">اختار حاجة تسمعها</b>
+        <small id="pSub">راديو مباشر، مهرجانات، شعبي، طرب، وعالمي…</small>
+      </div>
       <button class="ib" id="pFav" title="المفضلة"></button>
     </div>
     <div class="ctrl">
       <div class="btns">
-        <button class="ib" id="pShuffle" title="عشوائي"></button>
-        <button class="ib" id="pPrev" title="السابق"></button>
-        <button class="ib big" id="pPlay" title="تشغيل"></button>
-        <button class="ib" id="pNext" title="التالي"></button>
-        <button class="ib" id="pRepeat" title="تكرار"></button>
+        <button class="ib" id="pShuffle" title="عشوائي (S)"></button>
+        <button class="ib" id="pPrev" title="السابق (P)"></button>
+        <button class="ib big" id="pPlay" title="تشغيل / إيقاف (Space)"></button>
+        <button class="ib" id="pNext" title="التالي (N)"></button>
+        <button class="ib" id="pRepeat" title="تكرار (R)"></button>
       </div>
-      <div class="prog"><span id="pCur">0:00</span><div class="bar" id="pBar"><i id="pFill" style="width:0"></i></div><span id="pDur">0:00</span></div>
+      <div class="prog">
+        <span id="pCur">0:00</span>
+        <div class="bar" id="pBar"><i id="pFill" style="width:0"></i></div>
+        <span id="pDur">0:00</span>
+      </div>
     </div>
     <div class="side-ctrl">
       <canvas class="mini-vis" id="miniVis" width="160" height="68"></canvas>
       <span class="sleep-badge" id="sleepBadge"></span>
       <button class="ib" id="pSleep" title="مؤقت النوم"></button>
-      <button class="ib" id="pEq" title="الإكولايزر"></button>
-      <button class="ib" id="pQueue" title="قايمة الانتظار"></button>
-      <div class="vol"><button class="ib" id="pMute" title="كتم"></button><input type="range" id="pVol" min="0" max="1" step="0.01" value="0.8"></div>
-      <button class="ib" id="pFull" title="شاشة كاملة"></button>
+      <button class="ib" id="pEq" title="الإكولايزر (E)"></button>
+      <button class="ib" id="pQueue" title="قايمة الانتظار (Q)"></button>
+      <div class="vol">
+        <button class="ib" id="pMute" title="كتم الصوت (M)"></button>
+        <input type="range" id="pVol" min="0" max="1" step="0.01" value="0.8">
+      </div>
+      <button class="ib" id="pFull" title="شاشة التشغيل الكاملة (F)"></button>
     </div>
   </footer>
 </div>

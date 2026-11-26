@@ -18,7 +18,7 @@ import time
 import urllib.parse
 import urllib.request
 
-UA = "QASSIMZ-Music/1.0 (+https://github.com/ahmedqassimtv-commits/qassimz-music)"
+UA = "QASSIMZ-Music/1.1 (+https://github.com/ahmedqassimtv-commits/qassimz-music)"
 _cache: dict = {}
 _lock = threading.Lock()
 
@@ -38,7 +38,7 @@ def get_json(url, headers=None, ttl=600, timeout=12):
         if hit and time.time() - hit[0] < ttl:
             return hit[1]
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json", **(headers or {})})
-    with urllib.request.urlopen(req, timeout=timeout, context=ssl_ctx() if url.startswith("https") else None) as r:
+    with urllib.request.urlopen(req, timeout=timeout, context=ssl_ctx()) as r:
         data = json.loads(r.read().decode("utf-8", "replace"))
     with _lock:
         _cache[key] = (time.time(), data)

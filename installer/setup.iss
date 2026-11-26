@@ -1,6 +1,6 @@
 ﻿; QASSIMZ Music — Inno Setup script (per-user, no admin) with an animated 3D logo
 #ifndef AppVer
-  #define AppVer "1.0.0"
+  #define AppVer "1.1.0"
 #endif
 #define AppName "QASSIMZ Music"
 #define AppExe "QASSIMZ Music.exe"
@@ -62,9 +62,14 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 Filename: "{#Repo}"; Description: "افتح صفحة البرنامج على GitHub"; Flags: postinstall shellexec skipifsilent unchecked
-Filename: "{app}\{#AppExe}"; Flags: nowait; Check: WizardSilent
+Filename: "{app}\{#AppExe}"; Flags: nowait; Check: ShouldSilentRun
 
 [Code]
+function ShouldSilentRun: Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:AUTORUN|1}') = '1');
+end;
+
 const
   FRAMES = 36;
   FRAME_MS = 55;
