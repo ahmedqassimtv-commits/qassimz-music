@@ -28,7 +28,7 @@ import sources as SRC
 from rooms import EQ_BANDS, EQ_PRESETS, ROOM_BY_ID, ROOMS
 from store import Store
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 REPO = "ahmedqassimtv-commits/qassimz-music"
 CATALOG_URL = "https://raw.githubusercontent.com/ahmedqassimtv-commits/qassimz-hub/main/catalog.json"
 NOW_PLAYING: dict[str, str] = {}
@@ -284,9 +284,49 @@ class Api:
         return True
 
     def reveal(self, path):
-        if os.name == "nt" and path:
+        if not path:
+            return False
+        if os.name == "nt":
             subprocess.Popen(f'explorer.exe /select,"{os.path.normpath(path)}"')
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", "-R", path])
+        else:
+            p = Path(path)
+            target = str(p.parent if p.is_file() else p)
+            subprocess.Popen(["xdg-open", target])
         return True
+
+    def win_minimize(self) -> bool:
+        if self.window is not None:
+            try:
+                self.window.minimize()
+                return True
+            except Exception:
+                pass
+        return False
+
+    def win_toggle_maximize(self) -> bool:
+        if self.window is not None:
+            try:
+                if getattr(self, "_is_maximized", False):
+                    self.window.restore()
+                    self._is_maximized = False
+                else:
+                    self.window.maximize()
+                    self._is_maximized = True
+                return self._is_maximized
+            except Exception:
+                pass
+        return False
+
+    def win_close(self) -> bool:
+        if self.window is not None:
+            try:
+                self.window.destroy()
+                return True
+            except Exception:
+                pass
+        return False
 
     # ------------------------------------------------------------ update
     def check_update(self):

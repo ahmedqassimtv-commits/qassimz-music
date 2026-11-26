@@ -81,6 +81,14 @@ function renderNav() {
   $("#plNav").innerHTML = S.playlists.length ? S.playlists.map((p) => `<button class="nav ${S.route.v === "playlist" && S.route.arg === p.id ? "active" : ""}" data-p="${p.id}">${ico("list")}<span class="ell">${esc(p.name)}</span></button>`).join("")
     : `<p class="muted" style="font-size:12px;padding:6px 12px">اعمل قايمة وضيف فيها اللي بتحبه</p>`;
   $$("#plNav .nav").forEach((b) => (b.onclick = () => go("playlist", +b.dataset.p)));
+  const tp = $("#topPageTitle");
+  if (tp) {
+    const navMatch = NAV.find(([v]) => v === S.route.v);
+    if (navMatch) tp.textContent = navMatch[1];
+    else if (S.route.v === "room") tp.textContent = S.info?.rooms?.find((r) => r.id === S.route.arg)?.name || "الأنواع";
+    else if (S.route.v === "playlist") tp.textContent = S.playlists.find((p) => p.id === S.route.arg)?.name || "قايمة تشغيل";
+    else if (S.route.v === "album") tp.textContent = "ألبوم";
+  }
 }
 async function refreshPlaylists() { S.playlists = await api("playlists"); renderNav(); }
 
@@ -414,6 +422,7 @@ function onAudioError() {
   setTimeout(() => next(true), 1200);
 }
 audio.addEventListener("error", () => audio.src && !audio.src.endsWith("/") && onAudioError());
+audio.addEventListener("play", () => startLoop());
 audio.addEventListener("playing", () => setPlaying(true));
 audio.addEventListener("pause", () => setPlaying(false));
 audio.addEventListener("ended", () => (P.repeat === "one" ? (audio.currentTime = 0, audio.play()) : next()));
@@ -451,6 +460,11 @@ function setPlaying(on) {
   document.body.classList.toggle("paused", !on);
   const f = $(".full"); if (f) { f.classList.toggle("paused", !on); $("#fPlay", f) && ($("#fPlay", f).innerHTML = on ? icoF("pause") : icoF("play")); }
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = on ? "playing" : "paused";
+  if (on) startLoop();
+  else if (!P.sleepAt) {
+    stopLoop();
+    drawIdleVisuals();
+  }
 }
 function setIcy(t) {
   P.icy = t || "";
@@ -516,18 +530,92 @@ async function playYT(it) {
   });
 }
 
-/* ---------- progress loop + visualizer */
+/* ---------- progress loop + visualizer (demand-driven rAF + cached gradients) */
 function curTime() { return P.cur?.source === "youtube" ? (P.ytReady ? P.yt.getCurrentTime() : 0) : audio.currentTime; }
 function durTime() { return P.cur?.source === "youtube" ? (P.ytReady ? P.yt.getDuration() : 0) : (isFinite(audio.duration) ? audio.duration : P.cur?.duration || 0); }
 const freq = new Uint8Array(256);
 let fakePhase = 0;
+let rafId = 0;
+const gradCache = new WeakMap();
+
+function getMiniGrad(mc, g) {
+  let cached = gradCache.get(mc);
+  if (!cached || cached.h !== mc.height) {
+    const grad = g.createLinearGradient(0, mc.height, 0, 0);
+    grad.addColorStop(0, "#D97706");
+    grad.addColorStop(0.55, "#F59E0B");
+    grad.addColorStop(1, "#FDE68A");
+    cached = { grad, h: mc.height };
+    gradCache.set(mc, cached);
+  }
+  return cached.grad;
+}
+
+function getRingGrad(c, g) {
+  let cached = gradCache.get(c);
+  if (!cached || cached.w !== c.width || cached.h !== c.height) {
+    const grad = g.createLinearGradient(0, 0, c.width, c.height);
+    grad.addColorStop(0, "#FDE68A");
+    grad.addColorStop(0.5, "#F59E0B");
+    grad.addColorStop(1, "#D97706");
+    cached = { grad, w: c.width, h: c.height };
+    gradCache.set(c, cached);
+  }
+  return cached.grad;
+}
+
 function spectrum() {
   if (analyser && P.cur && P.cur.source !== "youtube") { analyser.getByteFrequencyData(freq); return freq; }
   fakePhase += P.playing ? 0.06 : 0; // YouTube is cross-origin: gentle synthetic motion
   for (let i = 0; i < 256; i++) freq[i] = P.playing ? 90 + 70 * Math.abs(Math.sin(fakePhase + i * 0.21)) * Math.abs(Math.cos(fakePhase * 0.7 + i * 0.05)) : 0;
   return freq;
 }
+
+function shouldRunLoop() {
+  return !document.hidden && (P.playing || (!audio.paused && !!audio.src) || P.sleepAt > 0);
+}
+
+function startLoop() {
+  if (!rafId && shouldRunLoop()) {
+    rafId = requestAnimationFrame(loop);
+  }
+}
+
+function stopLoop() {
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
+}
+
+function drawIdleVisuals() {
+  const mc = $("#miniVis");
+  if (mc) {
+    const g = mc.getContext("2d");
+    g.clearRect(0, 0, mc.width, mc.height);
+    if (S.info?.settings.visualizer !== false) {
+      const n = 20, w = mc.width / n;
+      g.fillStyle = getMiniGrad(mc, g);
+      for (let i = 0; i < n; i++) {
+        g.beginPath();
+        g.roundRect(i * w + 2, mc.height - 3, w - 4, 3, 2);
+        g.fill();
+      }
+    }
+  }
+  const fc = $("#fVis");
+  if (fc) {
+    freq.fill(0);
+    drawRing(fc, freq);
+  }
+}
+
 function loop() {
+  rafId = 0;
+  if (!shouldRunLoop()) {
+    if (!P.playing && !P.sleepAt) drawIdleVisuals();
+    return;
+  }
   if (P.cur && !P.cur.live) {
     const c = curTime(), d = durTime();
     $("#pCur").textContent = fmt(c); $("#pDur").textContent = fmt(d);
@@ -538,34 +626,47 @@ function loop() {
     if (left <= 0) { P.sleepAt = 0; $("#sleepBadge").textContent = ""; stopAll(); audio.volume = S.vol; setPlaying(false); toast("تصبح على خير"); }
     else { $("#sleepBadge").textContent = fmt(left / 1000); if (left < 20000) audio.volume = S.vol * (left / 20000); }
   }
-  if (S.info?.settings.visualizer !== false) {
+  if (P.playing && S.info?.settings.visualizer !== false) {
     const f = spectrum();
-    const mc = $("#miniVis"), g = mc.getContext("2d"); g.clearRect(0, 0, mc.width, mc.height);
-    const n = 20, w = mc.width / n;
-    const grad = g.createLinearGradient(0, mc.height, 0, 0);
-    grad.addColorStop(0, "#D97706");
-    grad.addColorStop(0.55, "#F59E0B");
-    grad.addColorStop(1, "#FDE68A");
-    g.fillStyle = grad;
-    for (let i = 0; i < n; i++) { const v = f[Math.floor(i * 5 + 2)] / 255, h = Math.max(3, v * mc.height); g.beginPath(); g.roundRect(i * w + 2, mc.height - h, w - 4, h, 3); g.fill(); }
-    const fc = $("#fVis"); if (fc) drawRing(fc, f);
+    const mc = $("#miniVis");
+    if (mc) {
+      const g = mc.getContext("2d");
+      g.clearRect(0, 0, mc.width, mc.height);
+      const n = 20, w = mc.width / n;
+      g.fillStyle = getMiniGrad(mc, g);
+      for (let i = 0; i < n; i++) {
+        const v = f[Math.floor(i * 5 + 2)] / 255, h = Math.max(3, v * mc.height);
+        g.beginPath();
+        g.roundRect(i * w + 2, mc.height - h, w - 4, h, 3);
+        g.fill();
+      }
+    }
+    const fc = $("#fVis");
+    if (fc) drawRing(fc, f);
   }
-  requestAnimationFrame(loop);
+  if (shouldRunLoop()) {
+    rafId = requestAnimationFrame(loop);
+  }
 }
+
 function drawRing(c, f) {
   const g = c.getContext("2d"), W = c.width, H = c.height, cx = W / 2, cy = H / 2, R = W * 0.29;
   g.clearRect(0, 0, W, H);
-  const grad = g.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0, "#FDE68A");
-  grad.addColorStop(0.5, "#F59E0B");
-  grad.addColorStop(1, "#D97706");
-  g.strokeStyle = grad; g.lineCap = "round"; g.lineWidth = W / 120; g.shadowColor = "rgba(245,158,11,.5)"; g.shadowBlur = W / 42;
-  const N = 96;
+  g.strokeStyle = getRingGrad(c, g);
+  g.lineCap = "round";
+  g.lineWidth = Math.max(2, W / 110);
+  const N = 84;
+  g.beginPath();
   for (let i = 0; i < N; i++) {
-    const k = i < N / 2 ? i : N - i; const v = f[Math.floor(4 + k * 2.4)] / 255;
-    const a = (i / N) * Math.PI * 2 - Math.PI / 2, h = W * 0.02 + v * W * 0.16;
-    g.beginPath(); g.moveTo(cx + R * Math.cos(a), cy + R * Math.sin(a)); g.lineTo(cx + (R + h) * Math.cos(a), cy + (R + h) * Math.sin(a)); g.stroke();
+    const k = i < N / 2 ? i : N - i;
+    const v = f[Math.floor(4 + k * 2.4)] / 255;
+    const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const h = W * 0.02 + v * W * 0.16;
+    const cos = Math.cos(a), sin = Math.sin(a);
+    g.moveTo(cx + R * cos, cy + R * sin);
+    g.lineTo(cx + (R + h) * cos, cy + (R + h) * sin);
   }
+  g.stroke();
 }
 
 /* ---------- fullscreen now playing */
@@ -574,12 +675,13 @@ function openFull() {
   if ($(".full")) return closeFull();
   const f = document.createElement("div"); f.className = "full" + (P.playing ? "" : " paused");
   document.body.appendChild(f); renderFull();
+  if (P.playing) startLoop(); else drawIdleVisuals();
 }
 function closeFull() { $(".full")?.remove(); }
 function renderFull() {
   const f = $(".full"), it = P.cur; if (!f || !it) return;
   f.innerHTML = `<div class="stage"><button class="ib close" id="fClose" title="رجوع (Esc)">${ico("x")}</button>
-      <div class="ring-wrap"><canvas id="fVis" width="1100" height="1100"></canvas><div class="disc ${it.source === "youtube" ? "" : "spin"}">${coverHTML(it)}</div></div>
+      <div class="ring-wrap"><canvas id="fVis" width="560" height="560"></canvas><div class="disc ${it.source === "youtube" ? "" : "spin"}">${coverHTML(it)}</div></div>
       <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:90%">${it.live ? '<span class="live">LIVE</span>' : ""}<h1>${esc(it.title)}</h1><div class="muted">${esc(it.subtitle || "")}</div><div class="icy" id="fIcy">${P.icy ? "♪ " + esc(P.icy) : ""}</div></div>
       <div class="btns"><button class="ib ${P.shuffle ? "on" : ""}" id="fShuf">${ico("shuffle")}</button><button class="ib" id="fPrev">${icoF("prev")}</button><button class="ib big" id="fPlay">${P.playing ? icoF("pause") : icoF("play")}</button><button class="ib" id="fNext">${icoF("next")}</button><button class="ib ${S.favs.has(keyOf(it)) ? "on" : ""}" id="fFav">${S.favs.has(keyOf(it)) ? icoF("heart") : ico("heart")}</button></div></div>
     <div class="glass queue"><h3>التالي في الانتظار</h3>${P.queue.slice(P.idx + 1, P.idx + 30).map((q, j) => `<div class="tr" data-q="${P.idx + 1 + j}" style="grid-template-columns:44px minmax(0,1fr) auto"><div class="art">${q.art ? `<img src="${esc(q.art)}" onerror="this.remove()">` : ico("disc")}</div><div style="min-width:0"><div class="tt">${esc(q.title)}</div><div class="ss">${esc(q.subtitle || "")}</div></div><span class="d">${q.live ? '<span class="live">LIVE</span>' : fmt(q.duration)}</span></div>`).join("") || '<p class="muted">مفيش حاجة في الانتظار</p>'}</div>`;
@@ -654,9 +756,9 @@ function eqPanel() {
   });
 }
 function sleepMenu(btn) {
-  menu(btn, [...[15, 30, 45, 60, 90].map((m) => ({ label: `بعد ${m} دقيقة`, icon: "moon", do: () => { P.sleepAt = Date.now() + m * 60000; toast(`هيقف بعد ${m} دقيقة`); } })),
-    "-", { label: "آخر الأغنية دي", icon: "moon", do: () => { const left = durTime() - curTime(); if (!P.cur || P.cur.live || !left) return toast("مينفعش مع الراديو اللايف", true); P.sleepAt = Date.now() + left * 1000; } },
-    { label: "الغِ المؤقت", icon: "x", do: () => { P.sleepAt = 0; $("#sleepBadge").textContent = ""; audio.volume = S.vol; } }]);
+  menu(btn, [...[15, 30, 45, 60, 90].map((m) => ({ label: `بعد ${m} دقيقة`, icon: "moon", do: () => { P.sleepAt = Date.now() + m * 60000; startLoop(); toast(`هيقف بعد ${m} دقيقة`); } })),
+    "-", { label: "آخر الأغنية دي", icon: "moon", do: () => { const left = durTime() - curTime(); if (!P.cur || P.cur.live || !left) return toast("مينفعش مع الراديو اللايف", true); P.sleepAt = Date.now() + left * 1000; startLoop(); } },
+    { label: "الغِ المؤقت", icon: "x", do: () => { P.sleepAt = 0; $("#sleepBadge").textContent = ""; audio.volume = S.vol; if (!P.playing) stopLoop(); } }]);
 }
 
 /* ================================================================== SETTINGS */
@@ -698,7 +800,7 @@ async function openSettings() {
 }
 function updateBanner(u) {
   if ($("#updB")) return;
-  const d = document.createElement("div"); d.id = "updB"; d.className = "toast"; d.style.top = "20px"; d.style.bottom = "auto";
+  const d = document.createElement("div"); d.id = "updB"; d.className = "toast"; d.style.top = "74px"; d.style.bottom = "auto";
   d.innerHTML = `إصدار جديد ${esc(u.version)} متاح <button class="btn sm gold" style="margin-inline-start:10px">حدّث دلوقتي</button>`;
   document.body.appendChild(d); $("button", d).onclick = () => api("install_update");
 }
@@ -706,7 +808,7 @@ function updateBanner(u) {
 function focusOrOpenSearch() {
   if ($(".full")) closeFull();
   $$(".modal").forEach((m) => (m.close ? m.close() : m.remove()));
-  const inp = $("#sQ") || $("#rQ") || $("#lQ") || $("#hQ");
+  const inp = $("#sQ") || $("#rQ") || $("#lQ") || $("#topSearch") || $("#hQ");
   if (S.route.v === "search" && $("#sQ")) {
     $("#sQ").focus();
     $("#sQ").select();
@@ -715,6 +817,11 @@ function focusOrOpenSearch() {
   if (inp && (S.route.v === "radio" || S.route.v === "library")) {
     inp.focus();
     inp.select();
+    return;
+  }
+  if ($("#topSearch")) {
+    $("#topSearch").focus();
+    $("#topSearch").select();
     return;
   }
   go("search");
@@ -729,6 +836,27 @@ async function boot() {
       try { window.focus(); } catch (err) {}
     }
   }, { passive: true });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopLoop();
+    else startLoop();
+  });
+
+  // Wire integrated frameless Liquid Glass topbar controls
+  $("#winMin")?.addEventListener("click", () => api("win_minimize").catch(() => {}));
+  $("#winMax")?.addEventListener("click", () => api("win_toggle_maximize").catch(() => {}));
+  $("#winClose")?.addEventListener("click", () => api("win_close").catch(() => {}));
+  $("#appTopbar")?.addEventListener("dblclick", (e) => {
+    if (e.target.closest(".no-drag, button, input")) return;
+    api("win_toggle_maximize").catch(() => {});
+  });
+  $("#topBack")?.addEventListener("click", () => history_back());
+  $("#topSearch")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const q = e.currentTarget.value.trim();
+      if (q) go("search", q);
+    }
+  });
 
   S.info = await api("info");
   S.favs = new Set(S.info.favs);
@@ -864,7 +992,8 @@ async function boot() {
   });
 
   api("radio_countries").then((cs) => { S.countryName = cs.find((c) => c.code === (S.info.settings.country || "EG"))?.name; }).catch(() => {});
-  render(); requestAnimationFrame(loop);
+  render();
+  drawIdleVisuals();
   setTimeout(async () => { const i = await api("info"); if (i.update) updateBanner(i.update); }, 9000);
 }
 document.fonts.ready.then(boot);

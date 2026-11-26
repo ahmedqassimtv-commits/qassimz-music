@@ -62,9 +62,12 @@ def main():
         width=1380,
         height=880,
         min_size=(1080, 680),
-        background_color="#090B0E",
+        background_color="#07090E",
+        frameless=True,
+        easy_drag=False,
     )
     api.window = win
+    api._is_maximized = False
 
     def focus_webview():
         try:
@@ -80,9 +83,10 @@ def main():
         pass
 
     def boot():
+        time.sleep(1.5)
         threading.Thread(target=store.scan, daemon=True).start()
         if store.settings().get("auto_update", True):
-            time.sleep(5)
+            time.sleep(4.0)
             api.check_update()
 
     threading.Thread(target=boot, daemon=True).start()

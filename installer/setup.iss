@@ -1,6 +1,6 @@
 ﻿; QASSIMZ Music — Inno Setup script (per-user, no admin) with an animated 3D logo
 #ifndef AppVer
-  #define AppVer "1.1.0"
+  #define AppVer "1.2.0"
 #endif
 #define AppName "QASSIMZ Music"
 #define AppExe "QASSIMZ Music.exe"
