@@ -69,3 +69,15 @@ python app/dev.py /tmp/data     # في المتصفح للتطوير
 
 ---
 <div align="center">© 2026 أحمد قاسم — قَاسِمز · MIT License</div>
+
+<!-- QASSIMZ-LIQUID-GLASS-RELEASE -->
+---
+
+## ✨ الجديد في الإصدار `v1.4.0` — تصميم Apple Liquid Glass & أيقونات v2
+
+<img src="assets/logo.svg" width="72" height="72" align="right" alt="qassimz-music (Mu)" />
+
+- أيقونة جديدة `Mu` (**v2 · Adobe 2022 Style**) بلون كهرماني دافئ (`#FF9A00`).
+- تحسين حواف **Apple Liquid Glass** الساطعة (Specular Rims) وتوحيد التدرجات الذهبية وشاشات المثبّت المتحركة.
+
+<!-- /QASSIMZ-LIQUID-GLASS-RELEASE -->

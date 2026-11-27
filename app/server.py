@@ -28,7 +28,7 @@ import sources as SRC
 from rooms import EQ_BANDS, EQ_PRESETS, ROOM_BY_ID, ROOMS
 from store import Store
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 REPO = "ahmedqassimtv-commits/qassimz-music"
 CATALOG_URL = "https://raw.githubusercontent.com/ahmedqassimtv-commits/qassimz-hub/main/catalog.json"
 NOW_PLAYING: dict[str, str] = {}
