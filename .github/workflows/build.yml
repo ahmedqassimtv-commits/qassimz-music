@@ -63,6 +63,16 @@ jobs:
       - name: Portable zip
         shell: pwsh
         run: Compress-Archive -Path "dist/QASSIMZ Music/*" -DestinationPath "dist/QASSIMZ-Music-Portable.zip"
+      - name: Build Delta Package (.qpkg + manifest.json)
+        shell: pwsh
+        run: |
+          $ver = ${{ needs.version.outputs.ver }}
+          $ver = ($ver -replace '^[vV]', '')
+          if (-not $ver) { $ver = '1.0.0' }
+          Invoke-WebRequest "https://raw.githubusercontent.com/ahmedqassimtv-commits/qassimz-hub/main/tools/qpkg_packager.py" -OutFile "qpkg_packager.py" -UseBasicParsing
+          python qpkg_packager.py pack --input "dist/QASSIMZ Music" --output-dir "dist/delta" --app-id "qassimz-music" --version "$ver"
+          python qpkg_packager.py verify --manifest "dist/delta/manifest.json" --qpkg "dist/delta/qassimz-music-v$ver.qpkg"
+
       - uses: actions/upload-artifact@v4
         with:
           name: QASSIMZ-Music
@@ -81,8 +91,12 @@ jobs:
             ## ⬇️ التحميل
             - **QASSIMZ-Music-Setup**: التسطيب العادي (موصى بيه، وبيحدّث نفسه)
             - **Portable.zip**: من غير تسطيب
+            dist/delta/manifest.json
+            dist/delta/*.qpkg
 
             لو ظهرت شاشة SmartScreen: **More info ← Run anyway**.
           files: |
             dist/QASSIMZ-Music-Setup-*.exe
             dist/QASSIMZ-Music-Portable.zip
+            dist/delta/manifest.json
+            dist/delta/*.qpkg
