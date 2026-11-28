@@ -1,83 +1,85 @@
 <div align="center">
 
-<img src="docs/logo-3d.gif" width="190" alt="QASSIMZ Music">
+<img src="assets/logo.svg" alt="QASSIMZ Music" width="112" height="112" />
 
 # QASSIMZ Music
+### مشغّل الموسيقى ومكتبة الصوتيات للمونتاج
 
-**استوديو استماع: راديو لايف من كل العالم، ومهرجانات وشعبي وطرب وعربي وأجنبي وموسيقى العالم، وأغانيك اللي على جهازك. كله في مكان واحد.**
+<!-- اللغات المدعومة أسفل اللوجو مباشرة -->
+<p>
+  <img src="https://img.shields.io/badge/Language-العربية%20(RTL)-10B981?style=for-the-badge" alt="العربية (RTL)" /> <img src="https://img.shields.io/badge/Language-English-3B82F6?style=for-the-badge" alt="English" />
+</p>
 
-من **أحمد قاسم — قَاسِمز** · مجاني ومفتوح المصدر · Windows 10/11
+<p>
+  <a href="https://github.com/ahmedqassimtv-commits/qassimz-music/releases/latest"><img src="https://img.shields.io/badge/Version-v1.4.0-EC4899?style=flat-square" alt="Version" /></a>
+  <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-18181B?style=flat-square" alt="Platform" />
+  <a href="https://github.com/ahmedqassimtv-commits/qassimz-hub/releases/latest"><img src="https://img.shields.io/badge/QASSIMZ-Creative%20Suite-0EA5E9?style=flat-square" alt="QASSIMZ Suite" /></a>
+</p>
 
-[⬇️ تحميل آخر إصدار](https://github.com/ahmedqassimtv-commits/qassimz-music/releases/latest) ·
-[🐞 الدعم والإبلاغ عن مشكلة](https://github.com/ahmedqassimtv-commits/qassimz-music/issues) ·
-[🌐 qassimz.com](https://qassimz.com)
+<p><em>Desktop Audio Library, Waveform Player & 10-Band Equalizer for Creators</em></p>
 
-<img src="docs/home.png" width="880" alt="QASSIMZ Music">
+<br />
+
+<img src="docs/preview-4k.png" alt="QASSIMZ Music — 4K UHD Preview" width="100%" />
 
 </div>
 
 ---
 
-## ✨ فيه إيه
+## 1. نظرة عامة
 
-| | |
-|---|---|
-| 📻 **راديو لايف** | آلاف المحطات من كل دول العالم (نجوم، نغم، مونت كارلو، BBC…)، وبتدوّر بالاسم أو الدولة أو النوع |
-| 🎵 **اسم الأغنية الشغالة** | البرنامج بيقرا من المحطة اسم الأغنية اللي شغالة دلوقتي ويعرضه |
-| 🎚️ **21 نوع** | مهرجانات · شعبي مصري · طرب وكلاسيكيات · عربي · خليجي · راي · إذاعات مصر · بوب · هيب هوب · إلكتروني · روك · جاز · كلاسيك · لو-فاي · لاتيني · كي بوب · أفريقي · هندي · تركي · ريجي · موسيقى العالم |
-| 🎧 **أغاني** | من Audius (مجاني)، ومن يوتيوب (اختياري، بمشغّل يوتيوب الرسمي)، وتسجيلات نادرة لأم كلثوم وعبد الوهاب وغيرهم من Internet Archive |
-| 💽 **أغانيك** | فولدرات الموسيقى اللي على جهازك، باسم الأغنية والفنان وصورة الألبوم |
-| ✨ **شاشة التشغيل** | دايرة دهبي بتتحرك مع الإيقاع، زي اللوجو بالظبط |
-| 🎛️ **إكولايزر 10 باند** | فيه إعدادات جاهزة: شعبي · مهرجانات · طرب · صوت · باص · روك… |
-| ❤️ **مفضلة وقوايم تشغيل** | ومعاهم قايمة انتظار، وعشوائي، وتكرار، وسجل |
-| 😴 **مؤقت نوم** | والصوت بيوطى تدريجياً قبل ما يقف |
-| ⌨️ **أزرار الميديا** | أزرار الكيبورد وتحكم الصوت بتاع الويندوز شغالين |
-
-<table><tr><td><img src="docs/nowplaying.png"></td><td><img src="docs/rooms.png"></td></tr>
-<tr><td><img src="docs/radio.png"></td><td><img src="docs/eq.png"></td></tr></table>
-
-## 🚀 التسطيب
-1. نزّل `QASSIMZ-Music-Setup-x.x.x.exe` من [Releases](https://github.com/ahmedqassimtv-commits/qassimz-music/releases/latest).
-2. لو ظهرت شاشة SmartScreen: **More info ← Run anyway**.
-3. (اختياري) عشان تظهر الأغاني المشهورة من يوتيوب: ⚙ الإعدادات ← يوتيوب ← الصق مفتاح **YouTube Data API v3** (مجاني من Google Cloud).
-
-<img src="docs/installer.gif" width="200" align="left" style="margin-left:16px">
-
-شاشة التسطيب فيها اللوجو الدهبي بيلف 3D.
-
-البرنامج بيتحدّث لوحده من GitHub، وبيانات المفضلة والقوايم على جهازك في `%APPDATA%\QASSIMZ Music`.
-<br clear="left">
-
-## ⚖️ المصادر والحقوق
-البرنامج مش بيخزّن ولا بينزّل أغاني. بيشغّل بس من مصادر رسمية ومفتوحة:
-[Radio Browser](https://www.radio-browser.info) (دليل محطات مفتوح)، [Audius](https://audius.co)، [Internet Archive](https://archive.org)، و[YouTube](https://youtube.com) بالمشغّل الرسمي.
-كل الحقوق لأصحابها، وكل أغنية ليها زرار يوصّل لصفحة الفنان أو المصدر.
-
-## 🛠️ للمطورين
-```bash
-pip install -r requirements.txt
-python app/main.py              # البرنامج
-python app/dev.py /tmp/data     # في المتصفح للتطوير
-```
-- `app/sources.py`: المصادر.
-- `app/rooms.py`: الأنواع والإكولايزر.
-- `app/server.py`: الـ API، وإعادة بث الصوت، وقراءة اسم الأغنية.
-- `app/store.py`: المفضلة والقوايم والمكتبة.
-- `app/ui/`: الواجهة.
-
-**نشر إصدار جديد:** غيّر `VERSION` في `app/server.py` واعمل push على `main`.
+مشغّل صوتيات ومكتبة موسيقى ومؤثرات صوتية مخصصة للمونتيرين، مع عرض الموجة الصوتية (Waveform) ومعادل صوت احترافي (EQ) وبحث لحظي.
 
 ---
-<div align="center">© 2026 أحمد قاسم — قَاسِمز · MIT License</div>
 
-<!-- QASSIMZ-LIQUID-GLASS-RELEASE -->
+## 2. المميزات الرئيسية
+
+1. **عرض الموجة الصوتية (Waveform):** معاينة بصرية دقيقة للمقاطع والانتقال لأي نقطة فوراً.
+2. **معادل صوتي مدمج (Equalizer):** ضبط الترددات الصوتية مع قوالب جاهزة.
+3. **فهرسة وتنظيم سريع للمكتبة:** تصنيف الموسيقى والمؤثرات الصوتية (SFX) حسب المزاج والنوع.
+4. **سحب وإفلات مباشر للمونتاج:** استخدام المقاطع الصوتية بسرعة داخل برامج التحرير.
+5. **أداء خفيف واستجابة فورية:** تشغيل سلس للملفات دون استهلاك موارد الجهاز.
+
 ---
 
-## ✨ الجديد في الإصدار `v1.4.0` — تصميم Apple Liquid Glass & أيقونات v2
+## 3. التحميل والتثبيت
 
-<img src="assets/logo.svg" width="72" height="72" align="right" alt="qassimz-music (Mu)" />
+1. **الطريقة الموصى بها (عبر QASSIMZ Hub):**
+   - حمّل وافتح [**QASSIMZ Hub**](https://github.com/ahmedqassimtv-commits/qassimz-hub/releases/latest) لتثبيت **QASSIMZ Music** وتلقي جميع التحديثات التفاضلية (`.qpkg`) تلقائياً بضغطة زر.
+2. **التحميل المباشر من GitHub Releases:**
+   - افتح صفحة [**أحدث إصدار (v1.4.0)**](https://github.com/ahmedqassimtv-commits/qassimz-music/releases/latest).
+   - حمّل ملف المثبّت (`Setup.exe`) للتثبيت العادي بدون صلاحيات مسؤول، أو النسخة المحمولة (`Portable.zip`) إن وجدت.
 
-- أيقونة جديدة `Mu` (**v2 · Adobe 2022 Style**) بلون كهرماني دافئ (`#FF9A00`).
-- تحسين حواف **Apple Liquid Glass** الساطعة (Specular Rims) وتوحيد التدرجات الذهبية وشاشات المثبّت المتحركة.
+---
 
-<!-- /QASSIMZ-LIQUID-GLASS-RELEASE -->
+## 4. متطلبات التشغيل
+
+1. نظام التشغيل: Windows 10 / 11 (64-bit).
+
+---
+
+## 5. منظومة قَاسِمز الإبداعية (QASSIMZ Creative Suite)
+
+| # | التطبيق | الوصف | المستودع |
+|---:|---|---|---|
+| 1 | **QASSIMZ Hub** | مركز ومنظومة قَاسِمز الإبداعية | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-hub) |
+| 2 | **QASSIMZ Thumbs** | محرك مصغّرات ويندوز والعارض الفوري | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-thumbs) |
+| 3 | **QASSIMZ FONTs** | مدير الخطوط الاحترافي والمزامنة السحابية | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-fonts) |
+| 4 | **QASSIMZ Studio** | استوديو المونتاج والتحرير الاحترافي | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-studio) |
+| 5 | **QASSIMZ Producer** | مساحة إدارة الإنتاج وصناعة المحتوى | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-producer) |
+| 6 | **QASSIMZ Music** **(الحالي)** | مشغّل الموسيقى ومكتبة الصوتيات للمونتاج | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-music) |
+| 7 | **QDM — QASSIMZ Download Manager** | مدير التحميل السريع متعدد المسارات | [GitHub](https://github.com/ahmedqassimtv-commits/qdm) |
+| 8 | **QASSIMZ Organizer** | منظّم مجلدات المشاريع والملفات الإبداعية | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-organizer) |
+| 9 | **QASSIMZ Study** | منصة المذاكرة والتركيز وإدارة الدروس | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-study) |
+| 10 | **QASSIMZ VOX FX** | إضافة المؤثرات البصرية والصوتية لـ Premiere Pro | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-vox-fx) |
+| 11 | **QASSIMZ Captions** | إضافة الترجمة والكتابة التلقائية لـ Premiere Pro | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-captions) |
+| 12 | **QASSIMZ Footage** | إضافة البحث واستيراد اللقطات لـ Premiere Pro | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-footage) |
+| 13 | **QASSIMZ MOGRT Hub** | مكتبة ومدير قوالب MOGRT لـ Premiere Pro | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-mogrt-hub) |
+| 14 | **QASSIMZ MOGRT Maker** | صانع قوالب MOGRT الاحترافي لـ Premiere Pro | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-mogrt-maker) |
+| 15 | **QASSIMZ Export** | إضافة التصدير الذكي السريع لـ Premiere Pro | [GitHub](https://github.com/ahmedqassimtv-commits/qassimz-export) |
+
+---
+
+<div align="center">
+  <sub>© 2026 <strong>QASSIMZ Creative Suite</strong> — Ahmed Qassim. جميع الحقوق محفوظة.</sub>
+</div>
